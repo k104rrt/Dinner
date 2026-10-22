@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CaseCraft – Krimidinner-Generator</title>
+<style>
+:root{--bg:#f6f1e9;--card:#fffdf9;--tx:#2a2420;--mut:#7a6f64;--ac:#8c1c2b;--ac2:#b8862b;--bd:#e1d6c6;--ok:#2d6a4f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16120f;--card:#221c18;--tx:#efe6da;--mut:#a89b8c;--ac:#e0566a;--ac2:#d9a948;--bd:#3a3028;--ok:#6cc79a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#16120f;--card:#221c18;--tx:#efe6da;--mut:#a89b8c;--ac:#e0566a;--ac2:#d9a948;--bd:#3a3028;--ok:#6cc79a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 Georgia,'Times New Roman',serif}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:26px;margin:8px 0 2px;letter-spacing:.5px}h1 span{color:var(--ac)}
+h2{font-size:19px;margin:18px 0 8px;color:var(--ac)}h3{font-size:16px;margin:12px 0 4px}
+.sub{color:var(--mut);margin:0 0 14px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:10px 0}
+label{display:block;font:600 13px system-ui,sans-serif;margin:10px 0 4px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:16px system-ui,sans-serif}
+textarea{min-height:70px}
+button{font:600 15px system-ui,sans-serif;padding:11px 16px;border:0;border-radius:10px;background:var(--ac);color:#fff;cursor:pointer;margin:4px 4px 4px 0}
+button.s{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+button.g{background:var(--ok)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{flex:1 1 140px}
+.chk{display:flex;gap:8px;align-items:center;margin:8px 0;font:15px system-ui,sans-serif}.chk input{width:auto}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:10px 0}.tabs button{flex:0 0 auto;background:var(--card);color:var(--tx);border:1px solid var(--bd)}.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.tag{display:inline-block;font:600 11px system-ui,sans-serif;padding:2px 8px;border-radius:99px;background:var(--bd);color:var(--mut)}
+.kill{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 10%,var(--card))}
+.lock{opacity:.6;border-style:dashed}
+.tl{border-left:3px solid var(--ac2);margin:8px 0 8px 6px;padding-left:12px}.tl div{margin:6px 0}.tl b{font-family:system-ui,sans-serif;color:var(--ac2)}
+.ev{border:2px solid var(--ac2);border-radius:10px;padding:10px;margin:8px 0;background:var(--card)}.ev b{display:block;color:var(--ac2);font:700 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:1px}
+.big{font:700 40px/1 system-ui,sans-serif;letter-spacing:6px;text-align:center;color:var(--ac);margin:10px 0}
+.timer{font:700 34px system-ui,sans-serif;text-align:center}
+.mut{color:var(--mut);font-size:14px}
+.tok{word-break:break-all;font:11px monospace;max-height:60px;overflow:auto;background:var(--bg);padding:6px;border-radius:6px;display:none}
+#prt{display:none}
+@media print{body>main{display:none}#prt{display:block}#prt .pg{page-break-after:always;padding:20px;color:#000}#prt .card{border:1px solid #999;background:#fff}}
+</style></head>
+<body><main id="app"></main><div id="prt"></div>
+<script>
+const $=s=>document.querySelector(s),app=$('#app');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const b64e=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d=t=>JSON.parse(decodeURIComponent(escape(atob(t.trim().replace(/-/g,'+').replace(/_/g,'/')))));
+const R=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const pick=(r,a)=>a[Math.floor(r()*a.length)],shuf=(r,a)=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const SET={
+zug:{n:'Nachtzug in den Bergen',P:['Speisewagen','Schlafwagen 3','Aussichtswagen','Gepäckabteil','Bordbistro'],V:['Graf Ewald von Thalberg, Eigner des Zuges','Dr. Mathilde Kranz, Reiseveranstalterin'],W:['ein Eispickel','vergifteter Glühwein','ein Bremsseil','eine Schaffnerlaterne'],I:'Der Nachtzug „Alpenstern“ steckt im Schneesturm fest. Kein Funk, kein Ausweg.'},
+ubahn:{n:'Berliner U-Bahn nachts',P:['Bahnsteig','Kiosk am Aufgang','Technikraum','Wagen 4','Fundbüro'],V:['Kalle Brandt, legendärer Straßenmusiker','Frau Lindner, Leiterin der Nachtschicht'],W:['ein Schienenschlüssel','eine Gitarrensaite','ein Feuerlöscher','ein Kabelbinder'],I:'Die letzte Bahn ist weg, die Gittertore sind zu. Ihr seid eingeschlossen.'},
+kanzlei:{n:'90er-Jahre-Kanzlei',P:['Konferenzraum','Archiv','Partnerbüro','Teeküche','Tiefgarage'],V:['Senior-Partner Dr. Hartwig Roth','Kanzleigründerin Ilse Brandner'],W:['ein Brieföffner','ein Aktenvernichter-Kabel','ein Montblanc-Füller','ein Faxgerät-Netzteil'],I:'Jahresfeier 1996: Sektgläser, Faxgeräte, Zigarettenrauch – und eine Leiche.'},
+frei:{n:'',P:['Salon','Küche','Garten','Keller','Flur'],V:['der Gastgeber','die Gastgeberin'],W:['ein Kerzenleuchter','Gift im Wein','eine Gartenschere','ein Schürhaken'],I:'Der Abend sollte unvergesslich werden. Das wird er jetzt.'}};
+const A=[
+{r:'Erb:in',s:'hat heimlich 40.000 € Schulden und braucht das Erbe',m:'Stirbt {V}, erbst du – und deine Schulden sind Geschichte.'},
+{r:'Geschäftspartner:in',s:'hat Firmengelder abgezweigt',m:'{V} hat die Bücher geprüft und dich fast entlarvt.'},
+{r:'Hausärzt:in',s:'hat ein Rezept gefälscht',m:'{V} drohte, dich bei der Kammer zu melden.'},
+{r:'Journalist:in',s:'hat {V} monatelang ausspioniert',m:'{V} wollte deine Enthüllungsstory verhindern.'},
+{r:'Assistent:in',s:'hat private Briefe von {V} gelesen',m:'{V} hat dich gedemütigt und mit Kündigung gedroht.'},
+{r:'Ex-Partner:in',s:'ist heimlich noch verliebt in {V}',m:'{V} hat dich öffentlich abserviert.'},
+{r:'Stammgast',s:'hat sich ohne Einladung eingeschlichen',m:'{V} wusste, wer du wirklich bist.'},
+{r:'Küchenchef:in',s:'hat teuren Wein heimlich durch billigen ersetzt',m:'{V} wollte deine Stelle streichen.'},
+{r:'Investor:in',s:'hat anonym gegen {V} spekuliert',m:'Ohne {V} steigen deine Aktien.'},
+{r:'Anwält:in',s:'hat ein Testament umgeschrieben',m:'{V} hatte dich dabei erwischt.'}];
+const NAMES=['Anna','Ben','Clara','David','Eva','Felix','Greta','Hannes','Ida','Jonas'];
+const you=s=>'Du '+(s.startsWith('hat')?'hast'+s.slice(3):'bist'+s.slice(3));
+let G=null,TM=null;
+
+async function K(c){return crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',new TextEncoder().encode(c)),'AES-GCM',false,['encrypt','decrypt'])}
+async function seal(t,c){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await K(c),new TextEncoder().encode(t)));return[...iv,...ct]}
+async function unseal(a,c){const u=new Uint8Array(a);return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:u.slice(0,12)},await K(c),u.slice(12)))}
+
+async function gen(p){
+ let aiNote='',aiR=null,AID=null;
+ if(p.ai){try{const S0=SET[p.set],nn=p.names.length,st=S0.n||p.custom||'ein Abend unter Freunden';
+  const o=await SMP.json(`Du bist Autor:in eines Krimidinners. Antworte NUR mit gültigem JSON, auf Deutsch, ohne Erklärung. Setting: ${st}. Gäste in dieser Reihenfolge (${nn}): ${p.names.join(', ')}. Beziehungen: ${(p.rel||'').replace(/\n/g,'; ')||'keine'}. Format: {"intro":"2 stimmungsvolle Sätze","victim":"Name, Funktion","places":["genau 5 verschiedene Orte im Setting, je 1-3 Wörter"],"weapon":"ein/eine + Tatwaffe im Nominativ","roles":[{"r":"Rollentitel, 1-3 Wörter","s":"heimliches Geheimnis, beginnt mit 'hat ' oder 'ist ', Platzhalter {V} für das Opfer","m":"Motiv in einem Satz, du-Form, Platzhalter {V}"}]} – roles hat genau ${nn} Einträge, in Gäste-Reihenfolge, alle verschieden, jede Figur ist verdächtig, die Rollen passen zu den Beziehungen. Kreativ, überraschend, jugendfrei, keine echten Personen.`);
+  const ok=o&&Array.isArray(o.places)&&o.places.length>=5&&o.places.every(x=>typeof x==='string')&&typeof o.victim==='string'&&typeof o.weapon==='string'&&typeof o.intro==='string'&&Array.isArray(o.roles)&&o.roles.length>=nn&&o.roles.slice(0,nn).every(x=>x&&x.r&&/^(hat|ist) /.test(x.s||'')&&x.m);
+  if(!ok)throw 0;
+  AID={...S0,P:o.places.slice(0,5),V:[o.victim],W:[o.weapon],I:o.intro};aiR=o.roles.slice(0,nn).map(x=>({r:x.r,s:x.s,m:x.m}))}catch(e){aiNote='KI nicht erreichbar – Standard-Plot genutzt.'}}
+ const seed=(crypto.getRandomValues(new Uint32Array(1))[0]),r=R(seed),D=AID||SET[p.set],N=p.names,n=N.length;
+ const V=pick(r,D.V),v=V.split(',')[0],W=pick(r,D.W),pl=shuf(r,D.P),scene=pl[0],rest=pl.slice(1),cover=rest[0];
+ const roles=aiR||shuf(r,A).slice(0,n),ki=Math.floor(r()*n),oth=shuf(r,[...Array(n).keys()].filter(i=>i!==ki));
+ const wi=oth[0],ci=oth[1],rh=oth[2];
+ const wh=i=>i===ki?scene:i===ci?cover:pick(r,rest.slice(1));
+ const code=()=>String(1000+Math.floor(r()*9000)),codes=[code(),code(),code()];
+ const sec=i=>roles[i].s.split('{V}').join(v),mot=i=>roles[i].m.split('{V}').join(v);
+ const cards=[
+  [{t:'Tatwaffe',d:`${W[0].toUpperCase()+W.slice(1)} – gefunden in: ${scene}.`},{t:'Zeitpunkt',d:'Die Uhr des Opfers blieb um 22:40 stehen.'}],
+  [{t:'Drohbrief',d:`Brief an ${v}: „Ich lasse das nicht auf mir sitzen.“ Unterzeichnet mit dem Buchstaben „${N[rh][0].toUpperCase()}“.`},{t:'Quittung',d:`Eine Barzahlung über 5.000 € an ${v} – ohne Absender.`}],
+  [{t:'Zeugenprotokoll',d:`Um 22:40 war der Bereich „${cover}“ nur von ${N[ci]} besetzt.`},{t:'Spur am Tatort',d:`In „${scene}“ liegt frische Asche und ein umgestoßener Stuhl – jemand war in Eile.`}]];
+ const r1=[`Du hast ${v} um 21:15 laut streiten hören.`,`Die Tür zu „${scene}“ war nicht aufgebrochen.`,`${v} trug heute Abend einen Schlüssel um den Hals.`];
+ const rel=N.map(()=>[]);
+ (p.rel||'').split('\n').forEach(l=>{const m=l.match(/^(.+?)\s*[-–—]\s*(.+?)\s*:\s*(.+)$/);if(!m)return;const a=N.findIndex(x=>x.toLowerCase()===m[1].trim().toLowerCase()),b=N.findIndex(x=>x.toLowerCase()===m[2].trim().toLowerCase());if(a>=0&&b>=0&&a!==b){rel[a].push(`${N[b]}: ${m[3]}`);rel[b].push(`${N[a]}: ${m[3]}`)}});
+ const players=N.map((name,i)=>{
+  const k=i===ki,w=wh(i),j=pick(r,[...Array(n).keys()].filter(x=>x!==i&&x!==ki));
+  const c2=i===ci?`Du warst um 22:40 allein im Bereich „${cover}“. Du hast niemanden gesehen – aber irgendwer hat später nach dir gefragt.`:`${N[j]} ${sec(j)}. Ob das wichtig ist, entscheidest du.`;
+  const c3=i===wi?`Um 22:35 hast du ${N[ki]} eilig aus Richtung „${scene}“ kommen sehen. Sag das im richtigen Moment.`:k?`Warnung: Es könnte einen Zeugen geben. Lenke den Verdacht auf andere!`:`Du hast ${N[j]} um 22:20 mit ${v} streiten sehen – es ging um Geld.`;
+  return{name,role:roles[i].r,killer:k,set:p.set==='frei'?(p.custom||'Euer Abend'):D.n,intro:D.I,V:v,
+   secret:you(sec(i)),motive:mot(i),
+   story:k?`Du behauptest öffentlich: Um 22:40 warst du im Bereich „${cover}“. Das ist gelogen.`:`Um 22:40 warst du im Bereich „${w}“. Das darfst du frei erzählen.`,
+   truth:k?`WAHRHEIT: Du hast ${v} um 22:40 in „${scene}“ getötet (Tatwaffe: ${W}). Halte dein Alibi durch, streue Zweifel, lüge nur wenn nötig.`:`Du bist unschuldig. Du darfst über dein Geheimnis lügen – aber nicht über den Mord selbst.`,
+   tl:[`20:00 – Du triffst ein.`,`21:15 – Streit mit ${v} ist hörbar.`,`22:40 – ${k?'(öffentlich) '+cover:w}`],
+   rel:rel[i],guests:N.map((x,q)=>`${x} – ${roles[q].r}`),
+   rounds:[0,1,2].map(q=>({code:codes[q],clue:[r1[i%3],c2,c3][q],cards:cards[q]}))}});
+ if(aiR){try{const inp={cards,clues:players.map(q=>q.rounds.map(x=>x.clue))};
+  const o=await SMP.json(`Du bist Krimi-Autor:in. Schreibe diese Spieltexte eines Krimidinners (Setting: ${D.n||p.custom}, Opfer: ${v}) stimmungsvoll und lebendig auf Deutsch um. WICHTIG: Alle Fakten (Namen, Uhrzeiten, Orte, Buchstaben, Beträge) bleiben exakt gleich, erfinde keine neuen Fakten, ändere nicht, wer in einem Hinweis genannt wird, bezichtige niemanden zusätzlich, behalte die du-Form der Hinweise, jeder Text höchstens 2 Sätze. Antworte NUR mit JSON in exakt derselben Struktur (gleiche Anzahl Einträge und Reihenfolge, bei cards die Felder t und d): ${JSON.stringify(inp)}`);
+  const good=o&&Array.isArray(o.cards)&&o.cards.length===3&&o.cards.every((c,q)=>Array.isArray(c)&&c.length===cards[q].length&&c.every(e=>e&&e.t&&e.d))&&Array.isArray(o.clues)&&o.clues.length===n&&o.clues.every(c=>Array.isArray(c)&&c.length===3&&c.every(x=>typeof x==='string'&&x));
+  if(!good)throw 0;
+  o.cards.forEach((c,q)=>c.forEach((e,k)=>{cards[q][k]={t:String(e.t),d:String(e.d)}}));
+  players.forEach((q,i)=>q.rounds.forEach((x,k)=>{x.clue=o.clues[i][k]}));
+ }catch(e){aiNote='KI-Hinweise nicht erreichbar – Standardtexte genutzt.'}}
+ let narr={intro:`Willkommen, liebe Gäste! Heute Abend wird kein gewöhnlicher Abend. Jede und jeder von euch hat ein Rollenheft – lest es still, hütet euer Geheimnis und lügt, wenn es nötig ist. Nur über den Mord selbst lügen nur Schuldige. Unter euch ist ein Mörder. Der Abend beginnt jetzt.`,setting:`${D.I} Das Opfer: ${V}. Zuletzt wurde ${v} gegen 21:15 Uhr laut streitend gehört. Um 22:40 Uhr blieb die Uhr stehen. Tatort: „${scene}“.`,rounds:[`Runde 1: Sprecht miteinander. Wer hat ${v} zuletzt gesehen? Gleich schalten sich die ersten Hinweise frei.`,`Runde 2: Die Fassade bröckelt. Neue Beweise liegen auf dem Tisch – nicht alles führt zum Mörder.`,`Runde 3: Die letzte Chance. Wer war wirklich dort, wo er oder sie behauptet?`],finale:`Die Zeit ist um. Jede und jeder nennt jetzt einen Namen und ein Motiv. Wer die meisten Stimmen bekommt, wird angeklagt. Dann öffne ich den Umschlag.`,atmo:['Dimmt das Licht und zündet Kerzen an.','Leise Hintergrundmusik passend zum Setting.','Snacks und Getränke bereitstellen, damit niemand den Tisch verlässt.','Handys nur für Rollenheft und Codes benutzen.']};
+ if(aiR){try{const o=await SMP.json(`Du bist Erzähler:in und schreibst Vorlese-Texte für den Spielleiter eines Krimidinners auf Deutsch. Setting: ${D.n||p.custom}. Stimmung: ${D.I}. Opfer: ${V}. Tatort: ${scene}. Zeitstrahl: 20:00 Gäste treffen ein; 21:15 lauter Streit mit ${v}; 22:40 Uhr des Opfers bleibt stehen; 23:00 Leiche entdeckt. Gäste: ${N.map((x,i)=>x+' ('+roles[i].r+')').join(', ')}. Beweise pro Runde: ${JSON.stringify(cards)}. Antworte NUR mit JSON: {"intro":"ca. 120 Wörter Begrüßung mit kurzen Spielregeln: Rollenheft still lesen, Geheimnis hüten, lügen erlaubt, Hinweise nur per Code","setting":"ca. 120 Wörter atmosphärische Schilderung von Ort und Mord, die den Spielern ein Gefühl gibt","rounds":["je 60-90 Wörter Eröffnung der Runde 1, 2 und 3, die die Beweise der Runde dramatisch anteasern"],"finale":"ca. 100 Wörter Aufruf zu Anklage und Abstimmung","atmo":["4 kurze Tipps zu Musik, Licht, Getränken/Snacks, Deko passend zum Setting"]} – rounds hat genau 3 Einträge. Spannend, leicht humorvoll, vorlesbar. Verrate niemals den Täter, erfinde keine neuen Fakten zur Tat.`);
+  if(!(o&&['intro','setting','finale'].every(k=>typeof o[k]==='string'&&o[k])&&Array.isArray(o.rounds)&&o.rounds.length===3&&o.rounds.every(x=>typeof x==='string'&&x)&&Array.isArray(o.atmo)&&o.atmo.length>=2&&o.atmo.every(x=>typeof x==='string')))throw 0;
+  narr={intro:o.intro,setting:o.setting,rounds:o.rounds,finale:o.finale,atmo:o.atmo.slice(0,5)}}catch(e){aiNote=aiNote||'KI-Erzähltexte nicht erreichbar – Standardtexte genutzt.'}}
+ const sol=`${N[ki]} (${roles[ki].r}) hat ${v} in „${scene}“ getötet (Tatwaffe: ${W}). Motiv: ${mot(ki)} Das Alibi („${cover}“) war falsch: ${N[ci]} war dort allein, ${N[wi]} sah ${N[ki]} um 22:35 aus Richtung „${scene}“ kommen.`;
+ const sc=String(Math.random()).slice(2,10);
+ return{narr,aiNote,ai:!!aiR,seed,v,players,codes,cards,pub:[`20:00 – Gäste treffen ein`,`21:15 – Lauter Streit mit ${v}`,`22:40 – Die Uhr von ${v} bleibt stehen (Tatzeit)`,`23:00 – Die Leiche wird entdeckt`],sealed:await seal(sol,sc),sc,ki,sol,scene,hostIdx:p.host?0:-1,blind:p.blind,mins:p.mins,unlocked:0,tab:0}}
+
+/* ---------- Heft-Ansicht (Spieler & Host) ---------- */
+function booklet(p,unl,print){
+ const lock=q=>`<div class="card lock"><b>Runde ${q+1}</b><br><span class="mut">Noch gesperrt – Code vom Spielleiter eingeben.</span></div>`;
+ let h=`<div class="card ${p.killer?'kill':''}"><span class="tag">${esc(p.set)}</span><h2 style="margin-top:6px">${esc(p.name)} – ${esc(p.role)}</h2><p>${esc(p.intro)}</p><p><b>Opfer:</b> ${esc(p.V)}</p></div>
+ <div class="card ${p.killer?'kill':''}"><h3>${p.killer?'Dein dunkles Geheimnis':'Deine Rolle'}</h3><p>${esc(p.truth)}</p><h3>Dein Geheimnis</h3><p>${esc(p.secret)} <span class="mut">(Nicht freiwillig verraten!)</span></p><h3>Dein Motiv</h3><p>${esc(p.motive)}</p><h3>Deine Aussage</h3><p>${esc(p.story)}</p></div>
+ <div class="card"><h3>Dein Abend</h3><div class="tl">${p.tl.map(t=>`<div><b>${esc(t.slice(0,5))}</b>${esc(t.slice(5))}</div>`).join('')}</div>${p.rel.length?`<h3>Beziehungen</h3>${p.rel.map(x=>`<p>• ${esc(x)}</p>`).join('')}`:''}<h3>Gäste</h3>${p.guests.map(x=>`<p style="margin:2px 0">• ${esc(x)}</p>`).join('')}</div>`;
+ p.rounds.forEach((q,i)=>{if(i<unl||print)h+=`<div class="card"><h3>Runde ${i+1}${print?' – erst nach Freigabe lesen':''}</h3><p>🔍 <b>Dein Hinweis:</b> ${esc(q.clue)}</p>${q.cards.map(c=>`<div class="ev"><b>Beweiskarte: ${esc(c.t)}</b>${esc(c.d)}</div>`).join('')}</div>`;else h+=lock(i)});
+ return h}
+
+/* ---------- Spieler-Modus ---------- */
+function playerView(p){
+ let unl=0,shown=false;
+ const draw=()=>{app.innerHTML=`<h1>Case<span>Craft</span></h1><p class="sub">Dein privates Rollenheft – nicht weitergeben.</p>
+ <button onclick="tg()" class="${shown?'s':''}">${shown?'🙈 Heft verbergen':'👁 Heft anzeigen'}</button>
+ ${shown?booklet(p,unl):'<div class="card mut">Heft ist verdeckt. Tippe auf „Heft anzeigen“, sobald niemand mitliest.</div>'}
+ <div class="card"><label>Rundencode vom Spielleiter</label><div class="row"><input id="cd" inputmode="numeric" maxlength="4" placeholder="4-stelliger Code"><button onclick="uc()">Freischalten</button></div><p id="msg" class="mut"></p></div>`};
+ window.tg=()=>{shown=!shown;draw()};
+ window.uc=()=>{const v=$('#cd').value.trim();const q=p.rounds.findIndex((x,i)=>i===unl&&x.code===v);if(q>=0){unl++;shown=true;draw();$('#msg').textContent='Runde '+unl+' freigeschaltet.'}else $('#msg').textContent='Code falsch oder Runde nicht an der Reihe.'};
+ draw()}
+
+/* ---------- Setup ---------- */
+function setup(){
+ app.innerHTML=`<h1>Case<span>Craft</span></h1><p class="sub">Dein Krimidinner in 30 Sekunden – kostenlos, wiederverwendbar, immer ein neuer Fall.</p>
+ <div class="card"><div class="row"><div><label>Spieleranzahl</label><select id="n" onchange="nm()">${[4,5,6,7,8,9,10].map(x=>`<option ${x===6?'selected':''}>${x}</option>`).join('')}</select></div>
+ <div><label>Setting</label><select id="st" onchange="$('#cu').style.display=this.value==='frei'?'block':'none'"><option value="zug">Nachtzug in den Bergen</option><option value="ubahn">Berliner U-Bahn nachts</option><option value="kanzlei">90er-Jahre-Kanzlei</option><option value="frei">Eigenes Setting…</option></select></div></div>
+ <input id="cu" placeholder="z. B. Geburtstag auf dem Hausboot" style="display:none;margin-top:8px">
+ <label>Namen der Gäste (der/die Erste ist der Host)</label><div id="nms"></div>
+ <label>Beziehungen (optional, eine pro Zeile: Name-Name: Beziehung)</label><textarea id="rl" placeholder="Anna-Ben: Ex-Paar&#10;Clara-David: Kollegen"></textarea>
+ <div class="chk"><input type="checkbox" id="hp" checked><label style="margin:0;text-transform:none;font-size:15px">Host spielt selbst mit</label></div>
+ <div class="chk" id="aiw" style="display:none"><input type="checkbox" id="ai" checked><label style="margin:0;text-transform:none;font-size:15px">✨ KI schreibt Plot, Rollen &amp; Geheimnisse (jeder Fall einzigartig)</label></div>
+ <div class="chk"><input type="checkbox" id="bl" checked><label style="margin:0;text-transform:none;font-size:15px">Blind-Modus: Täter bleibt für den Host versiegelt</label></div>
+ <label>Minuten pro Ermittlungsrunde</label><select id="mn"><option>5</option><option selected>10</option><option>15</option><option>20</option></select>
+ <button id="go" onclick="go()" style="width:100%;margin-top:14px">🔪 Fall generieren</button></div>
+ <div class="card"><label>Ich bin Mitspieler:in – Rollencode einfügen</label><textarea id="pc" placeholder="Code, den der Host dir geschickt hat"></textarea><button class="s" onclick="jp()">Mein Heft öffnen</button></div>`;
+ nm();try{window.claude&&claude.use('sample').then(s=>{if(s){window.SMP=s;const w=$('#aiw');if(w)w.style.display='flex'}})}catch(e){}}
+function nm(){const n=+$('#n').value,old=[...document.querySelectorAll('.nm')].map(x=>x.value);$('#nms').innerHTML=Array.from({length:n},(_,i)=>`<input class="nm" style="margin:3px 0" value="${esc(old[i]||NAMES[i])}">`).join('')}
+async function go(){
+ const names=[...document.querySelectorAll('.nm')].map((x,i)=>x.value.trim()||NAMES[i]);
+ if(new Set(names.map(x=>x.toLowerCase())).size<names.length){alert('Bitte eindeutige Namen verwenden.');return}
+ $('#go').disabled=true;$('#go').textContent=(window.SMP&&$('#ai').checked)?'✨ KI schreibt deinen Fall… (bis ca. 90 s)':'Generiere…';
+ G=await gen({names,set:$('#st').value,custom:$('#cu').value,rel:$('#rl').value,host:$('#hp').checked,blind:$('#bl').checked,mins:+$('#mn').value,ai:!!(window.SMP&&$('#ai')&&$('#ai').checked)});
+ host()}
+function jp(){try{playerView(b64d($('#pc').value))}catch(e){alert('Code ungültig. Bitte vollständig kopieren.')}}
+
+/* ---------- Host ---------- */
+function host(){
+ const T=['Gäste','Zeitstrahl','Beweise','Ermittlung','Drucken','Erzähler'];if(G.hostIdx>=0)T.push('Mein Heft');
+ const t=G.tab;let h=`<h1>Case<span>Craft</span></h1><p class="sub">${esc(G.players[0].set)} · ${G.players.length} Gäste · Opfer: ${esc(G.v)}${G.ai?' · ✨ KI-Plot':''}${G.aiNote?' · '+esc(G.aiNote):''}</p><div class="tabs">${T.map((x,i)=>`<button class="${t===i?'on':''}" onclick="G.tab=${i};host()">${x}</button>`).join('')}</div>`;
+ if(t===0){h+=`<p class="mut">Schicke jedem Gast seinen privaten Rollencode (Messenger). ${G.blind?'<b>Blind-Modus aktiv:</b> Rollen und Täter werden dir nicht angezeigt.':''}</p>`;
+  G.players.forEach((p,i)=>{const me=i===G.hostIdx;h+=`<div class="card ${!G.blind&&p.killer?'kill':''}"><b>${esc(p.name)}</b> ${G.blind?'':`<span class="tag">${esc(p.role)}${p.killer?' · TÄTER':''}</span>`} ${me?'<span class="tag">du</span>':''}<div>${me?'<span class="mut">Dein Heft: Tab „Mein Heft“.</span>':`<button onclick="cp(${i})">Code kopieren</button><button class="s" onclick="tk(${i})">Code anzeigen</button>`}</div><div id="tk${i}" class="tok"></div></div>`})}
+ if(t===1)h+=`<h2>Öffentlicher Zeitstrahl</h2><div class="card"><div class="tl">${G.pub.map(x=>`<div><b>${esc(x.slice(0,5))}</b>${esc(x.slice(5))}</div>`).join('')}</div></div><p class="mut">Jedes Heft enthält zusätzlich den privaten Abend der Figur.</p>`;
+ if(t===2){h+=`<h2>Beweismittel-Karten</h2>`;G.cards.forEach((c,q)=>{h+=(G.blind&&q>=G.unlocked&&G.hostIdx>=0)?`<div class="card lock">Runde ${q+1}: erscheint nach Freigabe.</div>`:`<h3>Runde ${q+1}</h3>${c.map(e=>`<div class="ev"><b>${esc(e.t)}</b>${esc(e.d)}</div>`).join('')}`})}
+ if(t===3){const u=G.unlocked;h+=`<h2>Ermittlungs-Timer</h2><div class="card"><div class="timer" id="tmr">${String(G.mins).padStart(2,'0')}:00</div><p class="mut" style="text-align:center">Runde ${Math.min(u+1,3)} von 3</p><div style="text-align:center">${u<3?`<button class="g" onclick="rel()">Runde ${u+1} starten &amp; freigeben</button>`:'<span class="tag">Alle Runden freigegeben</span>'}</div>
+  ${u>0?`<p class="mut" style="text-align:center">Code für Runde ${u} – laut ansagen oder in die Gruppe schicken:</p><div class="big">${G.codes[u-1]}</div>`:''}</div>
+  <div class="card"><h3>Finale</h3><p class="mut">Nach Runde 3: Alle klagen an. Dann den Umschlag öffnen.</p><button onclick="rv()" ${u<3?'disabled':''}>🔓 Siegel brechen</button><div id="sol"></div></div>`}
+ if(t===4)h+=`<h2>Rollenhefte drucken</h2><div class="card"><p>Druckt (oder speichert als PDF) alle Hefte, eines pro Seite${G.blind?' – ohne dass du sie liest':''}.</p><button onclick="pr()">🖨 Drucken / PDF</button></div>`;
+ if(t===5){const Z=G.narr;h+=`<h2>Erzähler-Skript</h2><p class="mut">Zum Vorlesen. ${G.ai?'✨ KI-geschrieben':'Standardtext'} – lies langsam und mach Pausen.</p>`+[['🎭 Begrüßung',Z.intro],['🌍 Das Setting',Z.setting],['🔍 Runde 1',Z.rounds[0]],['🔍 Runde 2',Z.rounds[1]],['🔍 Runde 3',Z.rounds[2]],['⚖️ Finale &amp; Anklage',Z.finale]].map(x=>`<div class="card"><h3>${x[0]}</h3><p style="white-space:pre-wrap">${esc(x[1])}</p></div>`).join('')+`<div class="card"><h3>🕯 Atmosphäre</h3>${Z.atmo.map(a=>`<p style="margin:4px 0">• ${esc(a)}</p>`).join('')}</div>`}
+ if(t===6)h+=`<div id="mh"></div>`+booklet(G.players[G.hostIdx],G.unlocked);
+ h+=`<p style="margin-top:20px"><button class="s" onclick="if(confirm('Neuen Fall erzeugen? Der aktuelle geht verloren.')){G=null;setup()}">Neuer Fall</button></p>`;
+ app.innerHTML=h}
+window.tk=i=>{const e=$('#tk'+i);e.style.display=e.style.display==='block'?'none':'block';e.textContent=b64e(G.players[i])};
+window.cp=async i=>{try{await navigator.clipboard.writeText(b64e(G.players[i]));alert('Code für '+G.players[i].name+' kopiert.')}catch(e){tk(i)}};
+window.rel=()=>{G.unlocked++;clearInterval(TM);let s=G.mins*60;host();const f=()=>{const e=$('#tmr');if(!e){clearInterval(TM);return}e.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(s--<=0){clearInterval(TM);e.textContent='⏰ Zeit!'}};f();TM=setInterval(f,1000)};
+window.rv=async()=>{try{$('#sol').innerHTML=`<div class="card kill"><h3>Die Auflösung</h3><p>${esc(await unseal(G.sealed,G.sc))}</p></div>`}catch(e){$('#sol').textContent='Entschlüsselung fehlgeschlagen.'}};
+window.pr=()=>{$('#prt').innerHTML=G.players.map(p=>`<div class="pg">${booklet(p,0,true)}</div>`).join('');try{window.print()}catch(e){alert('Drucken ist hier nicht verfügbar – nutze stattdessen die Rollencodes.')}};
+
+/* ---------- Start ---------- */
+const hs=location.hash.slice(1);
+if(hs){try{playerView(b64d(hs))}catch(e){setup()}}else setup();
+</script></body></html>
